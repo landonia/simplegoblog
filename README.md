@@ -23,7 +23,7 @@ With a healthy Go Language installed, simply run `go get github.com/landonia/sim
 
 ## Out of Box Example
 
-My blog [landotube](https://github.com/landonia) was written using simplegoblog.
+My blog [landotube](https://github.com/landonia/landotube) was written using simplegoblog.
 
 ## Custom Example
     
