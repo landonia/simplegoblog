@@ -46,7 +46,7 @@ My blog [landotube](https://github.com/landonia/landotube) was written using sim
 		// Create a new configuration containing the info
 		config := &blog.Configuration{DevelopmentMode:true, Postsdir:postsdir, Templatesdir:templatesdir, Assetsdir:assetsdir}
 	
-		// Create a new data structure for storing the data
+		// Create a new blog passing along the configuration
 		b := blog.New(config)
 	
 		// Start the server
@@ -59,7 +59,7 @@ My blog [landotube](https://github.com/landonia/landotube) was written using sim
 ## Future
 
 As the blog posts are marshalled to/from json and written to disk it would make sense
-to add a feature that would allow you to use a json backed data store such as mongodb.
+to add a feature that would allow you to use a JSON backed data store such as mongodb.
 
 ## About
 
