@@ -32,6 +32,11 @@ type Configuration struct {
 	Assetsdir       string
 }
 
+// Contains the templates that are to be handled by this applicaton
+type Templates struct {
+	templates []string
+}
+
 // Blog is the root data store for this blog
 type Blog struct {
 	configuration *Configuration
