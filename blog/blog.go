@@ -20,7 +20,21 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
+)
+
+// The struct for event information
+type Event struct {
+	Op Op // File operation that triggered the event.
+}
+
+// Op describes a set of file operations.
+type Op uint32
+
+// These are the generalized file operations that can trigger a notification.
+const (
+	Update Op = 1 << iota
 )
 
 // The base configuration for a new blog.
@@ -103,8 +117,23 @@ func (this *Blog) init(configuration *Configuration) *Blog {
 	this.configuration = configuration
 	this.posts = nil
 	this.postMap = make(map[string]*Post)
-	// Add the watcher
-	this.ExampleNewWatcher(configuration.Postsdir)
+
+	// Add the watcher for the post directory
+	mutex := &sync.Mutex{}
+	updates := this.WatchPosts(configuration.Postsdir)
+	go func() {
+		for {
+			select {
+			case event := <-updates:
+				if event.Op == Update {
+					mutex.Lock()
+					log.Print("Reloading Posts")
+					this.loadPosts()
+					mutex.Unlock()
+				}
+			}
+		}
+	}()
 	return this
 }
 
@@ -226,11 +255,14 @@ func (this *Blog) SavePost(post Post) error {
 }
 
 // This will create a watcher of the directory
-func (this *Blog) ExampleNewWatcher(directory string) {
+func (this *Blog) WatchPosts(directory string) chan Event {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Create the channel where events are pushed
+	updates := make(chan Event)
 	go func() {
 		for {
 			select {
@@ -238,8 +270,8 @@ func (this *Blog) ExampleNewWatcher(directory string) {
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					log.Println("modified file:", event.Name)
 
-					// The posts directory has changed so we need to do reload the posts
-					this.loadPosts()
+					// Push the event onto the queue to get the system to update the posts
+					updates <- Event{Op: Update}
 				}
 			}
 		}
@@ -250,4 +282,5 @@ func (this *Blog) ExampleNewWatcher(directory string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	return updates
 }
