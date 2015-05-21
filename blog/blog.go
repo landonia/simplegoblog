@@ -30,6 +30,7 @@ type Configuration struct {
 	Postsdir        string
 	Templatesdir    string
 	Assetsdir       string
+	Title           string
 }
 
 // Contains the templates that are to be handled by this applicaton
@@ -88,6 +89,7 @@ func New(configuration *Configuration) *Blog {
 
 	// New() allocates a new blog
 	blog := &Blog{}
+	log.Printf("Creating '%s' blog", configuration.Title)
 	log.Printf("Loading posts from directory: %s", configuration.Postsdir)
 	log.Printf("Loading templates from directory: %s", configuration.Templatesdir)
 	log.Printf("Serving assets from directory: %s", configuration.Assetsdir)

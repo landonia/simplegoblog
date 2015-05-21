@@ -83,14 +83,14 @@ func viewHomeHandler(w http.ResponseWriter, r *http.Request, blog *Blog, templat
 
 	// Only display the last 3 posts on the home page (which are the first three items in the array)
 	lastTwoPosts := blog.posts[:3]
-	blog.RenderTemplate(w, template, PageContent{Title: "Life thru a Lando", Posts: lastTwoPosts})
+	blog.RenderTemplate(w, template, PageContent{Title: blog.configuration.Title, Posts: lastTwoPosts})
 }
 
 // Handles all the requests to the posts page
 func viewPostsHandler(w http.ResponseWriter, r *http.Request, blog *Blog, template string) {
 
 	// Just send all the posts
-	blog.RenderTemplate(w, template, PageContent{Title: "Life Thru A Lando", Posts: blog.posts})
+	blog.RenderTemplate(w, template, PageContent{Title: blog.configuration.Title, Posts: blog.posts})
 }
 
 // handles all the requests for displaying a specific post
