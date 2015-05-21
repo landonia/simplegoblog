@@ -147,7 +147,7 @@ func (this *Blog) loadPosts() error {
 						for this.postMap[post.SafeTitle()] != nil {
 
 							// Then we need to ensure that this post has a unique name
-							post.Title = fmt.Sprintf("%s-1", post.Title)
+							post.Title = fmt.Sprintf("%s-", post.Title)
 						}
 
 						// Then the data was un-marshalled successfully and the post can be used
