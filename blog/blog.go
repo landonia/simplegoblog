@@ -77,11 +77,11 @@ func (this *Post) BodySafe() template.HTML {
 }
 
 // Sort functionality to sort the posts in order they were created
-type byCreated []*Post
+type ByCreated []*Post
 
-func (this byCreated) Len() int           { return len(this) }
-func (this byCreated) Less(i, j int) bool { return this[i].Created.After(this[j].Created) }
-func (this byCreated) Swap(i, j int)      { this[i], this[j] = this[j], this[i] }
+func (this ByCreated) Len() int           { return len(this) }
+func (this ByCreated) Swap(i, j int)      { this[i], this[j] = this[j], this[i] }
+func (this ByCreated) Less(i, j int) bool { return this[i].Created.After(this[j].Created) }
 
 // Will create a new Blog serving content from the provided directory
 func New(configuration *Configuration) *Blog {
@@ -143,6 +143,13 @@ func (this *Blog) loadPosts() error {
 					err := json.Unmarshal(b.Bytes(), &post)
 					if err == nil {
 
+						// Is there a post already with the same title?
+						for this.postMap[post.SafeTitle()] != nil {
+
+							// Then we need to ensure that this post has a unique name
+							post.Title = fmt.Sprintf("%s-1", post.Title)
+						}
+
 						// Then the data was un-marshalled successfully and the post can be used
 						postsno += 1
 						post.FileName = fi.Name()
@@ -163,7 +170,7 @@ func (this *Blog) loadPosts() error {
 	}
 
 	// Sort the array
-	sort.Sort(byCreated(this.posts))
+	sort.Sort(ByCreated(this.posts))
 	return nil
 }
 
