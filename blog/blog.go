@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gopkg.in/fsnotify.v1"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -20,7 +21,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-	//"github.com/howeyc/fsnotify"
 )
 
 // The base configuration for a new blog.
@@ -103,6 +103,8 @@ func (this *Blog) init(configuration *Configuration) *Blog {
 	this.configuration = configuration
 	this.posts = nil
 	this.postMap = make(map[string]*Post)
+	// Add the watcher
+	this.ExampleNewWatcher(configuration.Postsdir)
 	return this
 }
 
@@ -125,6 +127,7 @@ func (this *Blog) loadPosts() error {
 	}
 
 	postsno := 0
+	this.postMap = make(map[string]*Post)
 	log.Printf("Loading posts")
 	for _, fi := range fileInfos {
 
@@ -220,4 +223,31 @@ func (this *Blog) SavePost(post Post) error {
 	}
 	_, err = buffer.WriteTo(fo)
 	return err
+}
+
+// This will create a watcher of the directory
+func (this *Blog) ExampleNewWatcher(directory string) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	go func() {
+		for {
+			select {
+			case event := <-watcher.Events:
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					log.Println("modified file:", event.Name)
+
+					// The posts directory has changed so we need to do reload the posts
+					this.loadPosts()
+				}
+			}
+		}
+	}()
+
+	// Attempt to watch the directory
+	err = watcher.Add(directory)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
