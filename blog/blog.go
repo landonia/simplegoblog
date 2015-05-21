@@ -24,6 +24,9 @@ import (
 	"time"
 )
 
+// The mutex for reading the posts in
+var mutex = &sync.Mutex{}
+
 // The struct for event information
 type Event struct {
 	Op Op // File operation that triggered the event.
@@ -119,22 +122,46 @@ func (this *Blog) init(configuration *Configuration) *Blog {
 	this.postMap = make(map[string]*Post)
 
 	// Add the watcher for the post directory
-	mutex := &sync.Mutex{}
 	updates := this.WatchPosts(configuration.Postsdir)
+
+	// This is used to exit out of the current timer handlers
+	timerExit := make(chan bool)
+
+	// Start listening for the update events
 	go func() {
 		for {
 			select {
 			case event := <-updates:
 				if event.Op == Update {
-					mutex.Lock()
-					log.Print("Reloading Posts")
-					this.loadPosts()
-					mutex.Unlock()
+
+					// Cancel any existing timers
+					select {
+					case timerExit <- false:
+					default:
+					}
+
+					// This is the function that wil be called when the timer is started
+					go handlePostTimer(this, time.NewTimer(time.Second*10), timerExit)
 				}
 			}
 		}
 	}()
 	return this
+}
+
+// This will call the reload posts when the timer has ended or exit when the exit channel is called
+func handlePostTimer(blog *Blog, timer *time.Timer, exit chan bool) {
+	select {
+	case <-timer.C:
+
+		// Now reload the posts
+		log.Println("Post directory has changed")
+		blog.loadPosts()
+	case <-exit:
+
+		// This will drop out of the block
+		timer.Stop()
+	}
 }
 
 // Will return the path for the specific template name
@@ -146,6 +173,8 @@ func (this *Blog) getTemplatePath(templateName string) string {
 
 // Will read all the available posts from the file system
 func (this *Blog) loadPosts() error {
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	// Open the root application directory where the posts are stored
 	// Read in each file and generate the post and tag objects
@@ -268,7 +297,6 @@ func (this *Blog) WatchPosts(directory string) chan Event {
 			select {
 			case event := <-watcher.Events:
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					log.Println("modified file:", event.Name)
 
 					// Push the event onto the queue to get the system to update the posts
 					updates <- Event{Op: Update}
