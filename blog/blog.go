@@ -141,27 +141,24 @@ func (this *Blog) init(configuration *Configuration) *Blog {
 					}
 
 					// This is the function that wil be called when the timer is started
-					go handlePostTimer(this, time.NewTimer(time.Second*10), timerExit)
+					go func(blog *Blog, exit chan bool) {
+
+						// This will call the reload posts when the timer has ended or exit when the exit channel is called
+						select {
+						case <-time.NewTimer(time.Second * 10).C:
+
+							// Now reload the posts
+							log.Println("Post directory has changed")
+							blog.loadPosts()
+						case <-exit:
+							// This will drop out of the block
+						}
+					}(this, timerExit)
 				}
 			}
 		}
 	}()
 	return this
-}
-
-// This will call the reload posts when the timer has ended or exit when the exit channel is called
-func handlePostTimer(blog *Blog, timer *time.Timer, exit chan bool) {
-	select {
-	case <-timer.C:
-
-		// Now reload the posts
-		log.Println("Post directory has changed")
-		blog.loadPosts()
-	case <-exit:
-
-		// This will drop out of the block
-		timer.Stop()
-	}
 }
 
 // Will return the path for the specific template name
