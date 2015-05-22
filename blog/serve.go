@@ -81,9 +81,13 @@ func viewHomeHandler(w http.ResponseWriter, r *http.Request, blog *Blog, templat
 		return
 	}
 
-	// Only display the last 3 posts on the home page (which are the first three items in the array)
-	lastTwoPosts := blog.posts[:3]
-	blog.RenderTemplate(w, template, PageContent{Title: blog.configuration.Title, Posts: lastTwoPosts})
+	// We want to display the last n (cnfiguration) number of posts on the home page (if there are that many)
+	recentPosts := blog.posts[:len(blog.posts)]
+	if len(recentPosts) > blog.configuration.NoOfRecentPosts {
+		recentPosts = recentPosts[:blog.configuration.NoOfRecentPosts]
+	}
+
+	blog.RenderTemplate(w, template, PageContent{Title: blog.configuration.Title, Posts: recentPosts})
 }
 
 // Handles all the requests to the posts page

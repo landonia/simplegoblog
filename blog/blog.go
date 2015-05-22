@@ -48,6 +48,7 @@ type Configuration struct {
 	Templatesdir    string
 	Assetsdir       string
 	Title           string
+	NoOfRecentPosts int
 }
 
 // Contains the templates that are to be handled by this applicaton
@@ -120,6 +121,9 @@ func (this *Blog) init(configuration *Configuration) *Blog {
 	this.configuration = configuration
 	this.posts = nil
 	this.postMap = make(map[string]*Post)
+	if this.configuration.NoOfRecentPosts == 0 {
+		this.configuration.NoOfRecentPosts = 3
+	}
 
 	// Add the watcher for the post directory
 	updates := this.WatchPosts(configuration.Postsdir)
@@ -222,15 +226,16 @@ func (this *Blog) loadPosts() error {
 	log.Printf("Finished loading %d posts", postsno)
 
 	// Now sort the posts into the array
-	this.posts = make([]*Post, postsno)
+	newPosts := make([]*Post, postsno)
 	i := 0
 	for _, v := range this.postMap {
-		this.posts[i] = v
+		newPosts[i] = v
 		i += 1
 	}
 
 	// Sort the array
-	sort.Sort(ByCreated(this.posts))
+	sort.Sort(ByCreated(newPosts))
+	this.posts = newPosts
 	return nil
 }
 
