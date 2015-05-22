@@ -56,7 +56,7 @@ func (this *Blog) Start(addr string) error {
 	http.Handle("/notfound", generateHandler(this, "notfound.html", notFoundHandler, throttleLimit))
 
 	// Add the file server for the asset directory
-	http.Handle("/assets/", tollbooth.LimitHandler(tollbooth.NewLimiter(this.configuration.AssetHandlerLimit.Max, this.configuration.AssetHandlerLimit.Ttl),
+	http.Handle("/assets/", tollbooth.LimitHandler(throttleLimit,
 		http.StripPrefix("/assets/", http.FileServer(http.Dir(this.configuration.Assetsdir)))))
 
 	// Start the server

@@ -56,7 +56,6 @@ type Configuration struct {
 	Title               string
 	NoOfRecentPosts     int
 	RequestHandlerLimit ThrottleLimit
-	AssetHandlerLimit   ThrottleLimit
 }
 
 // Contains the templates that are to be handled by this applicaton
@@ -134,12 +133,6 @@ func (this *Blog) init(configuration *Configuration) *Blog {
 	if this.configuration.NoOfRecentPosts == 0 {
 		log.Println("Setting number of recent posts to default value of 3")
 		this.configuration.NoOfRecentPosts = 3
-	}
-
-	// Set the default asset throttle limit
-	if this.configuration.AssetHandlerLimit.Max == 0 {
-		log.Println("Setting asset handler limit to default value of 500ms")
-		this.configuration.AssetHandlerLimit = ThrottleLimit{Max: 20, Ttl: time.Second * 10}
 	}
 
 	// // Set the default throttle limit
