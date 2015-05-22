@@ -40,15 +40,23 @@ const (
 	Update Op = 1 << iota
 )
 
+// The throttle limit
+type ThrottleLimit struct {
+	Max int64
+	Ttl time.Duration
+}
+
 // The base configuration for a new blog.
 // The Configuration contains information such as file directories etc
 type Configuration struct {
-	DevelopmentMode bool
-	Postsdir        string
-	Templatesdir    string
-	Assetsdir       string
-	Title           string
-	NoOfRecentPosts int
+	DevelopmentMode     bool
+	Postsdir            string
+	Templatesdir        string
+	Assetsdir           string
+	Title               string
+	NoOfRecentPosts     int
+	RequestHandlerLimit ThrottleLimit
+	AssetHandlerLimit   ThrottleLimit
 }
 
 // Contains the templates that are to be handled by this applicaton
@@ -121,8 +129,23 @@ func (this *Blog) init(configuration *Configuration) *Blog {
 	this.configuration = configuration
 	this.posts = nil
 	this.postMap = make(map[string]*Post)
+
+	// Set the number of recent posts if it has not been set
 	if this.configuration.NoOfRecentPosts == 0 {
+		log.Println("Setting number of recent posts to default value of 3")
 		this.configuration.NoOfRecentPosts = 3
+	}
+
+	// Set the default asset throttle limit
+	if this.configuration.AssetHandlerLimit.Max == 0 {
+		log.Println("Setting asset handler limit to default value of 500ms")
+		this.configuration.AssetHandlerLimit = ThrottleLimit{Max: 500, Ttl: time.Millisecond}
+	}
+
+	// // Set the default throttle limit
+	if this.configuration.RequestHandlerLimit.Max == 0 {
+		log.Println("Setting request handler limit to default value of 1s")
+		this.configuration.RequestHandlerLimit = ThrottleLimit{Max: 1, Ttl: time.Second}
 	}
 
 	// Add the watcher for the post directory

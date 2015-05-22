@@ -6,6 +6,8 @@
 package blog
 
 import (
+	"github.com/didip/tollbooth"
+	"github.com/didip/tollbooth/config"
 	"html/template"
 	"log"
 	"net/http"
@@ -21,10 +23,10 @@ type PageContent struct {
 
 // Adds a custom handler to the existing handlers
 // Will not allow you to overwrite the existing blog paths
-func (this *Blog) AddCustomHandler(path string, handler func(http.ResponseWriter, *http.Request)) {
+func (this *Blog) AddCustomHandler(path string, handler func(http.ResponseWriter, *http.Request), throttleLimit *config.Limiter) {
 
 	// Add the custom handler
-	http.HandleFunc(path, handler)
+	http.Handle(path, tollbooth.LimitFuncHandler(throttleLimit, handler))
 }
 
 // Will start the blog on the chosen address
@@ -36,6 +38,9 @@ func (this *Blog) Start(addr string) error {
 		return err
 	}
 
+	// Use tollbooth as a throttle limiter based on standard request IP. The limit will be for a second
+	var throttleLimit = tollbooth.NewLimiter(this.configuration.RequestHandlerLimit.Max, this.configuration.RequestHandlerLimit.Ttl)
+
 	// Setup the templates
 	//this.templates = spitz.New(templatesdir, this.developmentMode)
 	this.templates = template.Must(template.ParseFiles(this.getTemplatePath("header.html"),
@@ -44,14 +49,15 @@ func (this *Blog) Start(addr string) error {
 		this.getTemplatePath("notfound.html"), this.getTemplatePath("about.html")))
 
 	// Setup the handlers
-	http.HandleFunc("/", generateHandler(this, "home.html", viewHomeHandler))
-	http.HandleFunc("/posts", generateHandler(this, "posts.html", viewPostsHandler))
-	http.HandleFunc("/posts/", generateHandler(this, "post.html", viewPostHandler))
-	http.HandleFunc("/about", generateHandler(this, "about.html", viewPostsHandler))
-	http.HandleFunc("/notfound", generateHandler(this, "notfound.html", notFoundHandler))
+	http.Handle("/", generateHandler(this, "home.html", viewHomeHandler, throttleLimit))
+	http.Handle("/posts", generateHandler(this, "posts.html", viewPostsHandler, throttleLimit))
+	http.Handle("/posts/", generateHandler(this, "post.html", viewPostHandler, throttleLimit))
+	http.Handle("/about", generateHandler(this, "about.html", viewPostsHandler, throttleLimit))
+	http.Handle("/notfound", generateHandler(this, "notfound.html", notFoundHandler, throttleLimit))
 
 	// Add the file server for the asset directory
-	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir(this.configuration.Assetsdir))))
+	http.Handle("/assets/", tollbooth.LimitHandler(tollbooth.NewLimiter(this.configuration.AssetHandlerLimit.Max, this.configuration.AssetHandlerLimit.Ttl),
+		http.StripPrefix("/assets/", http.FileServer(http.Dir(this.configuration.Assetsdir)))))
 
 	// Start the server
 	log.Printf("Starting server using address: %s", addr)
@@ -59,14 +65,10 @@ func (this *Blog) Start(addr string) error {
 }
 
 // Will generate a handler passing the current blog handler
-func generateHandler(blog *Blog, template string, handler func(http.ResponseWriter, *http.Request, *Blog, string)) http.HandlerFunc {
+func generateHandler(blog *Blog, template string, handler func(http.ResponseWriter, *http.Request, *Blog, string), throttleLimit *config.Limiter) http.Handler {
 
-	// Return a standard HTTP handler function
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		// Just call the underlying function
-		handler(w, r, blog, template)
-	}
+	// Just call the underlying function using the throttle middleware
+	return tollbooth.LimitFuncHandler(throttleLimit, func(w http.ResponseWriter, r *http.Request) { handler(w, r, blog, template) })
 }
 
 // Handles all the requests to the home page
