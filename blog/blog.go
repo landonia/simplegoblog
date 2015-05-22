@@ -42,8 +42,8 @@ const (
 
 // The throttle limit
 type ThrottleLimit struct {
-	Max int64
-	Ttl time.Duration
+	Max int64         // This is number of tokens allowed in the bucket
+	Ttl time.Duration // This is the time period that a token will be added to the bucket
 }
 
 // The base configuration for a new blog.
@@ -139,13 +139,13 @@ func (this *Blog) init(configuration *Configuration) *Blog {
 	// Set the default asset throttle limit
 	if this.configuration.AssetHandlerLimit.Max == 0 {
 		log.Println("Setting asset handler limit to default value of 500ms")
-		this.configuration.AssetHandlerLimit = ThrottleLimit{Max: 500, Ttl: time.Millisecond}
+		this.configuration.AssetHandlerLimit = ThrottleLimit{Max: 20, Ttl: time.Second * 10}
 	}
 
 	// // Set the default throttle limit
 	if this.configuration.RequestHandlerLimit.Max == 0 {
 		log.Println("Setting request handler limit to default value of 1s")
-		this.configuration.RequestHandlerLimit = ThrottleLimit{Max: 1, Ttl: time.Second}
+		this.configuration.RequestHandlerLimit = ThrottleLimit{Max: 10, Ttl: time.Second}
 	}
 
 	// Add the watcher for the post directory
