@@ -6,8 +6,8 @@
 package blog
 
 import (
-	"github.com/didip/tollbooth"
-	"github.com/didip/tollbooth/config"
+	"github.com/landonia/tollbooth"
+	"github.com/landonia/tollbooth/config"
 	"html/template"
 	"log"
 	"net/http"
