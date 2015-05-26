@@ -259,7 +259,8 @@ func (this *Blog) loadPosts() error {
 func (this *Blog) SavePost(post Post) error {
 
 	// Add a created time stamp
-	if &post.Created == nil {
+
+	if post.Created.IsZero() {
 		log.Println("Created a new time stamp for post")
 		post.Created = time.Now()
 	}
@@ -282,7 +283,7 @@ func (this *Blog) SavePost(post Post) error {
 
 	// Write the file out to disk
 
-	filePath := path.Join(this.configuration.Postsdir, fmt.Sprintf("%d.json", post.Created.Unix()))
+	filePath := path.Join(this.configuration.Postsdir, fmt.Sprintf("%s.json", post.SafeTitle()))
 	fo, err := os.Create(filePath)
 	defer fo.Close()
 	if err != nil {
