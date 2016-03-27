@@ -2,18 +2,18 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Contains the structures and functions for the web server
 package blog
 
 import (
-	"github.com/landonia/tollbooth"
-	"github.com/landonia/tollbooth/config"
 	"html/template"
 	"log"
 	"net/http"
+
+	"github.com/landonia/tollbooth"
+	"github.com/landonia/tollbooth/config"
 )
 
-// The data that is passed to all templates
+// PageContent data that is passed to all templates
 type PageContent struct {
 	Title       string
 	Description string
@@ -21,43 +21,43 @@ type PageContent struct {
 	Post        *Post
 }
 
-// Adds a custom handler to the existing handlers
+// AddCustomHandler to the existing handlers
 // Will not allow you to overwrite the existing blog paths
-func (this *Blog) AddCustomHandler(path string, handler func(http.ResponseWriter, *http.Request), throttleLimit *config.Limiter) {
+func AddCustomHandler(path string, handler func(http.ResponseWriter, *http.Request), throttleLimit *config.Limiter) {
 
 	// Add the custom handler
 	http.Handle(path, tollbooth.LimitFuncHandler(throttleLimit, handler))
 }
 
-// Will start the blog on the chosen address
-func (this *Blog) Start(addr string) error {
+// Start the blog on the chosen address
+func (blog *Blog) Start(addr string) error {
 
 	// Read in all the post files
-	err := this.loadPosts()
+	err := blog.loadPosts()
 	if err != nil {
 		return err
 	}
 
 	// Use tollbooth as a throttle limiter based on standard request IP. The limit will be for a second
-	var throttleLimit = tollbooth.NewLimiter(this.configuration.RequestHandlerLimit.Max, this.configuration.RequestHandlerLimit.Ttl)
+	var throttleLimit = tollbooth.NewLimiter(blog.configuration.RequestHandlerLimit.Max, blog.configuration.RequestHandlerLimit.TTL)
 
 	// Setup the templates
 	//this.templates = spitz.New(templatesdir, this.developmentMode)
-	this.templates = template.Must(template.ParseFiles(this.getTemplatePath("header.html"),
-		this.getTemplatePath("footer.html"), this.getTemplatePath("home.html"),
-		this.getTemplatePath("post.html"), this.getTemplatePath("posts.html"),
-		this.getTemplatePath("notfound.html"), this.getTemplatePath("about.html")))
+	blog.templates = template.Must(template.ParseFiles(blog.getTemplatePath("header.html"),
+		blog.getTemplatePath("footer.html"), blog.getTemplatePath("home.html"),
+		blog.getTemplatePath("post.html"), blog.getTemplatePath("posts.html"),
+		blog.getTemplatePath("notfound.html"), blog.getTemplatePath("about.html")))
 
 	// Setup the handlers
-	http.Handle("/", generateHandler(this, "home.html", viewHomeHandler, throttleLimit))
-	http.Handle("/posts", generateHandler(this, "posts.html", viewPostsHandler, throttleLimit))
-	http.Handle("/posts/", generateHandler(this, "post.html", viewPostHandler, throttleLimit))
-	http.Handle("/about", generateHandler(this, "about.html", viewPostsHandler, throttleLimit))
-	http.Handle("/notfound", generateHandler(this, "notfound.html", notFoundHandler, throttleLimit))
+	http.Handle("/", generateHandler(blog, "home.html", viewHomeHandler, throttleLimit))
+	http.Handle("/posts", generateHandler(blog, "posts.html", viewPostsHandler, throttleLimit))
+	http.Handle("/posts/", generateHandler(blog, "post.html", viewPostHandler, throttleLimit))
+	http.Handle("/about", generateHandler(blog, "about.html", viewPostsHandler, throttleLimit))
+	http.Handle("/notfound", generateHandler(blog, "notfound.html", notFoundHandler, throttleLimit))
 
 	// Add the file server for the asset directory
 	http.Handle("/assets/", tollbooth.LimitHandler(throttleLimit,
-		http.StripPrefix("/assets/", http.FileServer(http.Dir(this.configuration.Assetsdir)))))
+		http.StripPrefix("/assets/", http.FileServer(http.Dir(blog.configuration.Assetsdir)))))
 
 	// Start the server
 	log.Printf("Starting server using address: %s", addr)
@@ -126,9 +126,9 @@ func notFoundHandler(w http.ResponseWriter, r *http.Request, blog *Blog, templat
 	blog.RenderTemplate(w, template, PageContent{Title: "Page Not Found"})
 }
 
-// Will render the chosen template
-func (this *Blog) RenderTemplate(w http.ResponseWriter, tmpl string, data PageContent) {
-	err := this.templates.ExecuteTemplate(w, tmpl, data)
+// RenderTemplate will render the chosen template
+func (blog *Blog) RenderTemplate(w http.ResponseWriter, tmpl string, data PageContent) {
+	err := blog.templates.ExecuteTemplate(w, tmpl, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
