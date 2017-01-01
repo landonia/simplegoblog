@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"net/url"
 	"os"
 	"path"
@@ -21,7 +20,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/landonia/golog"
+
 	"gopkg.in/fsnotify.v1"
+)
+
+var (
+	logger = golog.New("simplegoblog.Blog")
 )
 
 // The mutex for reading the posts in
@@ -113,10 +118,10 @@ func New(configuration *Configuration) *Blog {
 
 	// New() allocates a new blog
 	blog := &Blog{}
-	log.Printf("Creating '%s' blog", configuration.Title)
-	log.Printf("Loading posts from directory: %s", configuration.Postsdir)
-	log.Printf("Loading templates from directory: %s", configuration.Templatesdir)
-	log.Printf("Serving assets from directory: %s", configuration.Assetsdir)
+	logger.Info("Creating '%s' blog", configuration.Title)
+	logger.Info("Loading posts from directory: %s", configuration.Postsdir)
+	logger.Info("Loading templates from directory: %s", configuration.Templatesdir)
+	logger.Info("Serving assets from directory: %s", configuration.Assetsdir)
 
 	// Initialise the blog values
 	return blog.init(configuration)
@@ -130,13 +135,13 @@ func (blog *Blog) init(configuration *Configuration) *Blog {
 
 	// Set the number of recent posts if it has not been set
 	if blog.configuration.NoOfRecentPosts == 0 {
-		log.Println("Setting number of recent posts to default value of 3")
+		logger.Warn("Setting number of recent posts to default value of 3")
 		blog.configuration.NoOfRecentPosts = 3
 	}
 
 	// // Set the default throttle limit
 	if blog.configuration.RequestHandlerLimit.Max == 0 {
-		log.Println("Setting request handler limit to default value of 1s")
+		logger.Warn("Setting request handler limit to default value of 1s")
 		blog.configuration.RequestHandlerLimit = ThrottleLimit{Max: 10, TTL: time.Second}
 	}
 
@@ -167,7 +172,7 @@ func (blog *Blog) init(configuration *Configuration) *Blog {
 						case <-time.NewTimer(time.Second * 10).C:
 
 							// Now reload the posts
-							log.Println("Post directory has changed")
+							logger.Warn("Post directory has changed")
 							blog.loadPosts()
 						case <-exit:
 							// This will drop out of the block
@@ -196,13 +201,13 @@ func (blog *Blog) loadPosts() error {
 	// Read in each file and generate the post and tag objects
 	fileInfos, err := ioutil.ReadDir(blog.configuration.Postsdir)
 	if err != nil {
-		log.Printf("Cannot read the files from %s", blog.configuration.Postsdir)
+		logger.Error("Cannot read the files from %s", blog.configuration.Postsdir)
 		return err
 	}
 
 	postsno := 0
 	blog.postMap = make(map[string]*Post)
-	log.Printf("Loading posts")
+	logger.Debug("Loading posts")
 	for _, fi := range fileInfos {
 
 		// Load the file (only .json files should be read)
@@ -238,7 +243,7 @@ func (blog *Blog) loadPosts() error {
 			}
 		}
 	}
-	log.Printf("Finished loading %d posts", postsno)
+	logger.Debug("Finished loading %d posts", postsno)
 
 	// Now sort the posts into the array
 	newPosts := make([]*Post, postsno)
@@ -258,7 +263,7 @@ func (blog *Blog) loadPosts() error {
 func WatchPosts(directory string) chan Event {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal("Error creating watcher: %s", err.Error())
 	}
 
 	// Create the channel where events are pushed
@@ -279,7 +284,7 @@ func WatchPosts(directory string) chan Event {
 	// Attempt to watch the directory
 	err = watcher.Add(directory)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal("Error creating directory watcher: %s", err.Error())
 	}
 	return updates
 }

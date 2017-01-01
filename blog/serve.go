@@ -6,7 +6,6 @@ package blog
 
 import (
 	"html/template"
-	"log"
 	"net/http"
 
 	"github.com/landonia/tollbooth"
@@ -60,7 +59,7 @@ func (blog *Blog) Start(addr string) error {
 		http.StripPrefix("/assets/", http.FileServer(http.Dir(blog.configuration.Assetsdir)))))
 
 	// Start the server
-	log.Printf("Starting server using address: %s", addr)
+	logger.Info("Starting server using address: %s", addr)
 	return http.ListenAndServe(addr, nil)
 }
 
